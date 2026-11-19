@@ -326,7 +326,8 @@ def _close(a, b, tolerance=2):
         return True
     if abs(len(a) - len(b)) > tolerance:
         return False
-    diff = sum(1 for x, y in zip(a, b) if x != y) + abs(len(a) - len(b))
+    # strict=False：两个字符串长度可能不等，差的长度由后面的 abs(len(a)-len(b)) 补上
+    diff = sum(1 for x, y in zip(a, b, strict=False) if x != y) + abs(len(a) - len(b))
     return diff <= tolerance
 
 

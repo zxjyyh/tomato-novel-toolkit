@@ -69,7 +69,7 @@ def main():
     if args.dry_run:
         print("\n[预演] 不写入。实际执行会：")
         print(f"  1. 插入 {sub_books - overlap:,} 条新书")
-        print(f"  2. 合并 slice_progress")
+        print("  2. 合并 slice_progress")
         c.execute("DETACH DATABASE sub")
         c.close()
         return
