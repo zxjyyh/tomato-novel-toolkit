@@ -1,0 +1,20 @@
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+exclude = [".venv", "data", "logs"]
+
+[tool.ruff.lint]
+# E/F 是基础错误；I 是 import 排序；UP 是语法现代化
+select = ["E", "F", "I", "UP", "B"]
+ignore = [
+    "E501",   # 行长由 line-length 兜底，中文注释不好硬折
+    "B008",   # FastAPI 的 Depends(...) 默认值写法
+]
+
+[tool.ruff.lint.per-file-ignores]
+# 脚本里有大量 f-string 拼 SQL 的白名单片段，S608 未启用，这里只放宽松项
+"fq_*.py" = ["B007"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

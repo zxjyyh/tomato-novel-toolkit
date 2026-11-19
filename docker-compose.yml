@@ -1,0 +1,64 @@
+services:
+  # Web 控制台：扫描 / 下载 / 入库 / 补元数据
+  # 部署后默认【停止】：必须在网页点「开始」或调接口才会爬，不会自动跑
+  panel:
+    build: .
+    image: tomato-novel-toolkit:latest
+    container_name: tomato-panel
+    restart: unless-stopped
+    ports:
+      - "18081:18081"
+    volumes:
+      # 数据库必须放在本机磁盘（NFS/SMB 上跑 SQLite 会锁坏），按需改成自己的路径
+      - ./data:/data
+      - ./books:/app/books
+      - ./uploads:/app/uploads
+    environment:
+      TZ: Asia/Shanghai
+      FQ_DB: /data/fq_books.db
+      FQ_MAP: /data/mapping.json
+      FQ_PLAN: /data/cats.json
+      # 容器内必须监听 0.0.0.0，否则宿主机的端口映射进不来
+      FQ_PANEL_HOST: 0.0.0.0
+      FQ_PANEL_PORT: "18081"
+      # 面板会开启 HTTP 接口来控制爬取，暴露到局域网时务必设置口令！
+      # 生成方法：python -c "import secrets;print(secrets.token_urlsafe(16))"
+      # FQ_PANEL_TOKEN: "改成你的口令"
+      # 代理：容器里的 127.0.0.1 指向容器自身，用 host.docker.internal 指回宿主机
+      # 不需要代理就删掉这两行
+      FQ_PROXY: http://host.docker.internal:7890
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    shm_size: "1gb"
+    mem_limit: 2g
+    security_opt:
+      - seccomp:unconfined
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ------------------------------------------------------------------
+  # 可选：每日自动增量（默认关闭）
+  # 想让"每天定时自己跑"就把下面整段取消注释；想全手动就保持注释。
+  # ------------------------------------------------------------------
+  # incr:
+  #   image: tomato-novel-toolkit:latest
+  #   container_name: tomato-incr
+  #   restart: unless-stopped
+  #   command: ["python", "-u", "fq_daily.py"]
+  #   volumes:
+  #     - ./data:/data
+  #   environment:
+  #     TZ: Asia/Shanghai
+  #     FQ_DB: /data/fq_books.db
+  #     FQ_MAP: /data/mapping.json
+  #     FQ_PROXY: http://host.docker.internal:7890
+  #     FQ_INCR_AT: "03:00"
+  #     FQ_INCR_DAYS: "3"
+  #     FQ_INCR_PAGES: "3"
+  #   extra_hosts:
+  #     - "host.docker.internal:host-gateway"
+  #   security_opt:
+  #     - seccomp:unconfined

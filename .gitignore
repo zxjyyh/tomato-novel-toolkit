@@ -1,0 +1,71 @@
+# ===== 数据与产物（绝对不要提交）=====
+# 数据库
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# 抓取结果 / 运行状态
+cats.json
+cat_meta.json
+*_totals.json
+mapping*.json
+pua_list.json
+status_*.json
+*.tsv
+*.csv
+data/
+logs/
+清单_切分/
+
+# 跨进程锁
+*.lock
+
+# 下载的书与收件箱
+books/
+uploads/
+*.epub
+*.txt.bak
+
+# 字体与混淆样本（第三方版权）
+*.woff
+*.woff2
+*.ttf
+*.otf
+
+# 代理 / 下载引擎
+*.exe
+*.exe.*
+
+# 日志与截图
+*.log
+*.png
+*.jpg
+*.jpeg
+!static/**/*.png
+!static/**/*.svg
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ===== 编辑器 / 系统 =====
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== 本地配置 =====
+.env
+.env.local
+config.local.*

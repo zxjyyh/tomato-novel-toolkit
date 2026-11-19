@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>番茄全站书库</title>
+<style>
+:root{--bd:#e6e6e6;--fg:#222;--mut:#8a8a8a;--bg:#fafafa;--acc:#4f7cf7}
+*{box-sizing:border-box}
+body{margin:0;background:#fff;color:var(--fg);font:14px/1.6 -apple-system,'Microsoft YaHei',sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:26px 20px 60px}
+header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+h1{font-size:19px;font-weight:500;margin:0}
+.tag{font-size:12px;padding:3px 10px;border-radius:99px;background:#f0f0f0;color:#666}
+.tag.run{background:#e6f4ea;color:#1d6b32}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.card{border:1px solid var(--bd);border-radius:10px;padding:14px 16px}
+.card .n{font-size:22px;font-weight:500;letter-spacing:.3px}
+.card .l{font-size:12px;color:var(--mut);margin-top:2px}
+.panel{border:1px solid var(--bd);border-radius:10px;padding:16px;margin-bottom:16px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+select,input{font:13px inherit;padding:6px 9px;border:1px solid var(--bd);border-radius:6px;background:#fff;color:var(--fg)}
+input[type=number]{width:88px}
+input[type=text]{width:220px}
+button{font:13px inherit;padding:6px 15px;border:1px solid #d6d6d6;border-radius:6px;background:#fff;cursor:pointer}
+button:hover{background:#f5f5f5}
+button.primary{background:var(--acc);border-color:var(--acc);color:#fff}
+button.primary:hover{filter:brightness(.95)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.bar{height:4px;background:#eee;border-radius:2px;overflow:hidden;margin:14px 0 8px}
+.bar>i{display:block;height:100%;width:0;background:var(--acc);transition:width .4s}
+pre{background:var(--bg);border:1px solid #f0f0f0;border-radius:8px;padding:11px;margin:0;
+    font-size:12px;line-height:1.65;max-height:220px;overflow:auto;color:#444;white-space:pre-wrap}
+table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #f2f2f2;white-space:nowrap}
+th{color:var(--mut);font-weight:400;font-size:12px}
+td.t{max-width:340px;overflow:hidden;text-overflow:ellipsis}
+tbody tr:hover{background:#fafbff}
+.pg{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:12px;color:var(--mut);font-size:12px}
+.mut{color:var(--mut);font-size:12px}
+.ok{color:#1d6b32;background:#e6f4ea;padding:1px 8px;border-radius:99px;font-size:12px}
+.no{color:#bbb}
+.tabs{display:flex;gap:6px;margin-bottom:12px;border-bottom:1px solid var(--bd);padding-bottom:0}
+.tab{padding:8px 18px;border:1px solid transparent;border-bottom:none;border-radius:8px 8px 0 0;
+     background:transparent;color:#666;cursor:pointer;margin-bottom:-1px}
+.tab.active{background:#fff;border-color:var(--bd);color:var(--fg);font-weight:500}
+.tab .dot{display:inline-block;width:6px;height:6px;border-radius:99px;background:#2fa84f;margin-left:6px;vertical-align:middle}
+h3{font-size:13px;font-weight:500;margin:0 0 10px;color:#444}
+.hint{font-size:12px;color:var(--mut);margin:8px 0 0;line-height:1.7}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:10px}
+.stat{border:1px solid #f0f0f0;border-radius:8px;padding:10px 12px;background:var(--bg)}
+.stat .v{font-size:17px;font-weight:500}
+.stat .k{font-size:11px;color:var(--mut)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>番茄全站书库</h1>
+    <span id="tag" class="tag">已停止</span>
+    <span id="uptime" class="mut"></span>
+  </header>
+
+  <div class="cards">
+    <div class="card"><div class="n" id="s-books">-</div><div class="l">书籍总数</div></div>
+    <div class="card"><div class="n" id="s-slices">-</div><div class="l">已完成切片</div></div>
+    <div class="card"><div class="n" id="s-dl">-</div><div class="l">已下载</div></div>
+    <div class="card"><div class="n" id="s-meta">-</div><div class="l">已补全元数据</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="scan">扫描<span class="dot" id="dot-scan" hidden></span></button>
+    <button class="tab" data-tab="download">下载<span class="dot" id="dot-download" hidden></span></button>
+    <button class="tab" data-tab="ingest">入库<span class="dot" id="dot-ingest" hidden></span></button>
+    <button class="tab" data-tab="meta">元数据<span class="dot" id="dot-meta" hidden></span></button>
+  </div>
+
+  <div class="panel pane" id="pane-scan">
+    <div class="row">
+      <select id="mode">
+        <option value="full">全量枚举（断点续跑）</option>
+        <option value="single">单个分类</option>
+        <option value="incr">增量扫描（最近几天）</option>
+      </select>
+      <select id="cat" style="display:none"></select>
+      <label class="mut" id="days-wrap" style="display:none">最近
+        <input type="number" id="days" value="3" min="1" max="30"> 天</label>
+      <button class="primary" id="btn-start">开始扫描</button>
+      <button id="btn-stop">停止</button>
+      <span id="prog-txt" class="mut"></span>
+    </div>
+    <div class="bar"><i id="prog"></i></div>
+    <pre id="log">还没有开始扫描。</pre>
+  </div>
+
+  <div class="panel pane" id="pane-download" hidden>
+    <h3>下载到 uploads，等入库核验</h3>
+    <div class="row">
+      <select id="dl-mode">
+        <option value="unfinished">补全未下载的书</option>
+        <option value="tsv">导入 TSV 清单</option>
+        <option value="search">手动搜索书名</option>
+      </select>
+      <span id="dl-unfinished">
+        <label class="mut">在读 ≥ <input type="number" id="dl-read" value="0" step="1000"></label>
+        <label class="mut">最多 <input type="number" id="dl-limit" value="100" min="1"></label> 本
+      </span>
+      <span id="dl-tsv" hidden><input type="text" id="dl-file" placeholder="清单文件完整路径"></span>
+      <span id="dl-search" hidden><input type="text" id="dl-kw" placeholder="输入书名"></span>
+      <button class="primary" id="btn-dl-start">开始下载</button>
+      <button id="btn-dl-stop">停止</button>
+    </div>
+    <div class="grid2">
+      <div class="stat"><div class="v" id="dl-total">0</div><div class="k">待下载</div></div>
+      <div class="stat"><div class="v" id="dl-done">0</div><div class="k">已处理</div></div>
+      <div class="stat"><div class="v" id="dl-ok">0</div><div class="k">成功</div></div>
+      <div class="stat"><div class="v" id="dl-fail">0</div><div class="k">失败</div></div>
+    </div>
+    <div class="bar"><i id="dl-prog"></i></div>
+    <div class="mut" id="dl-cur" style="margin-bottom:8px"></div>
+    <pre id="dl-log">还没有开始下载。</pre>
+    <p class="hint">下载引擎需先在 <code>127.0.0.1:18430</code> 启动，输出目录已指向 uploads。</p>
+  </div>
+
+  <div class="panel pane" id="pane-ingest" hidden>
+    <h3>核验 uploads 里的 epub，匹配成功才进 books</h3>
+    <div class="row">
+      <button class="primary" id="btn-in-once">扫描一次</button>
+      <button id="btn-in-watch">常驻监听</button>
+      <button id="btn-in-stop">停止</button>
+      <span class="mut">每 <input type="number" id="in-interval" value="60" min="10" style="width:66px"> 秒检查一次</span>
+    </div>
+    <div class="grid2">
+      <div class="stat"><div class="v" id="in-moved">0</div><div class="k">成功入库</div></div>
+      <div class="stat"><div class="v" id="in-dup">0</div><div class="k">重复跳过</div></div>
+      <div class="stat"><div class="v" id="in-unknown">0</div><div class="k">库内无此书</div></div>
+      <div class="stat"><div class="v" id="in-broken">0</div><div class="k">文件损坏</div></div>
+    </div>
+    <pre id="in-log" style="margin-top:12px">还没有扫描过。</pre>
+    <p class="hint">
+      重复的移入 <code>uploads/_duplicate/</code>，未知的移入 <code>_unknown/</code>，
+      损坏的移入 <code>_broken/</code>；成功的按分类进入 <code>books/</code> 并标记已下载。
+    </p>
+  </div>
+
+  <div class="panel pane" id="pane-meta" hidden>
+    <h3>补全大类、标签、开书时间</h3>
+    <div class="row">
+      <label class="mut">在读 ≥ <input type="number" id="mt-read" value="10000" step="1000"></label>
+      <label class="mut">最多 <input type="number" id="mt-limit" value="0" min="0"> 本（0=不限）</label>
+      <button class="primary" id="btn-mt-start">开始补全</button>
+      <button id="btn-mt-stop">停止</button>
+    </div>
+    <div class="grid2">
+      <div class="stat"><div class="v" id="mt-total">0</div><div class="k">待补全</div></div>
+      <div class="stat"><div class="v" id="mt-done">0</div><div class="k">已处理</div></div>
+      <div class="stat"><div class="v" id="mt-ok">0</div><div class="k">成功</div></div>
+      <div class="stat"><div class="v" id="mt-fail">0</div><div class="k">失败</div></div>
+    </div>
+    <div class="bar"><i id="mt-prog"></i></div>
+    <div class="mut" id="mt-cur" style="margin-bottom:8px"></div>
+    <pre id="mt-log">还没有开始补全。</pre>
+    <p class="hint">每本书一次详情页请求（约 370 KB），只补还没补过的书。中断后可继续。</p>
+  </div>
+
+  <div class="panel">
+    <div class="row">
+      <input id="q" placeholder="搜书名 / 作者" style="width:200px">
+      <select id="f-cat"><option value="">全部分类</option></select>
+      <label class="mut">在读 ≥ <input type="number" id="min-read" value="0" step="1000"></label>
+      <label class="mut">字数 ≥ <input type="number" id="min-word" value="0" step="100000"></label>
+      <select id="dl"><option value="">全部状态</option><option value="0">未下载</option><option value="1">已下载</option></select>
+      <select id="order">
+        <option value="read">按在读人数</option>
+        <option value="word">按字数</option>
+        <option value="new">按完结时间（新→旧）</option>
+        <option value="old">按完结时间（旧→新）</option>
+        <option value="title">按书名</option>
+      </select>
+      <button id="btn-export">导出 TSV</button>
+      <span id="total-txt" class="mut" style="margin-left:auto"></span>
+    </div>
+
+    <table>
+      <thead><tr>
+        <th>书名</th><th>作者</th><th>分类</th><th>字数</th><th>在读</th><th>完结时间</th><th>状态</th>
+      </tr></thead>
+      <tbody id="tb"></tbody>
+    </table>
+
+    <div class="pg">
+      <button id="prev">上一页</button>
+      <span id="pg-txt">-</span>
+      <button id="next">下一页</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let page = 1, size = 50, total = 0;
+
+const $ = id => document.getElementById(id);
+const fmt = n => (n == null ? '-' : Number(n).toLocaleString());
+const dstr = ts => ts ? new Date(ts * 1000).toLocaleDateString('zh-CN') : '-';
+
+// 书名/作者来自外部站点，绝不能直接塞进 innerHTML
+const esc = s => String(s == null ? '' : s)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+function token() { return localStorage.getItem('fq_token') || ''; }
+
+// 统一请求入口：带上访问口令，401 时提示输入，非 2xx 抛错（避免静默失败）
+let asking = false;
+
+async function api(url, opt) {
+  opt = Object.assign({}, opt || {});
+  opt.headers = Object.assign({}, opt.headers, { 'X-FQ-Token': token() });
+  const r = await fetch(url, opt);
+  if (r.status === 401) {
+    // 页面初始化会并发发好几个请求，只弹一次输入框
+    if (asking) throw new Error('未授权');
+    asking = true;
+    const v = prompt('面板需要访问口令（FQ_PANEL_TOKEN）：', token());
+    asking = false;
+    if (v === null) throw new Error('未授权');
+    localStorage.setItem('fq_token', v.trim());
+    return api(url, opt);
+  }
+  if (!r.ok) {
+    let msg = 'HTTP ' + r.status;
+    try {
+      const j = await r.json();
+      msg = j.error || j.detail || msg;
+    } catch (e) { /* 非 JSON 响应 */ }
+    throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
+  }
+  return r.json();
+}
+
+async function post(url, body) {
+  return api(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body || {}),
+  });
+}
+
+// 点按钮 → 提示结果 → 刷新状态，异常统一弹出来
+async function act(url, body) {
+  try {
+    const r = await post(url, body || {});
+    alert(r.message || '已发送');
+  } catch (e) {
+    alert('操作失败：' + e.message);
+  }
+  loadJobs();
+}
+
+function params() {
+  return new URLSearchParams({
+    page, size,
+    q: $('q').value.trim(),
+    cat: $('f-cat').value,
+    min_read: $('min-read').value || 0,
+    min_word: $('min-word').value || 0,
+    order: $('order').value,
+    dl: $('dl').value,
+  });
+}
+
+document.querySelectorAll('.tab').forEach(t => {
+  t.onclick = () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.querySelectorAll('.pane').forEach(p => p.hidden = true);
+    $('pane-' + t.dataset.tab).hidden = false;
+    if (t.dataset.tab === 'scan') loadBooks();
+  };
+});
+
+async function loadStats() {
+  try {
+    const j = await api('/api/stats');
+    const slices = j.slices_total || 1;
+    $('s-books').textContent = fmt(j.books);
+    $('s-slices').textContent = (j.slices_done || 0) + ' / ' + slices;
+    $('s-dl').textContent = fmt(j.downloaded);
+    $('s-meta').textContent = fmt(j.meta_done);
+    $('prog').style.width = Math.round((j.slices_done || 0) * 100 / slices) + '%';
+    $('prog-txt').textContent = (j.slices_done || 0) + '/' + slices + ' 切片';
+  } catch (e) { /* 轮询失败不打扰用户 */ }
+}
+
+function fillLog(el, lines, empty) {
+  el.textContent = (lines && lines.length) ? lines.join('\n') : empty;
+  el.scrollTop = el.scrollHeight;
+}
+
+async function loadJobs() {
+  let j;
+  try { j = await api('/api/jobs'); } catch (e) { return; }
+  const scan = j.scan || {}, dl = j.download || {}, ing = j.ingest || {}, mt = j.meta || {};
+
+  const t = $('tag');
+  t.textContent = scan.running ? '扫描中 · ' + (scan.mode || '') : '已停止';
+  t.className = 'tag' + (scan.running ? ' run' : '');
+  $('uptime').textContent = scan.running ? '已运行 ' + (scan.uptime_min || 0) + ' 分钟' : '';
+  $('btn-start').disabled = !!scan.running;
+  $('btn-stop').disabled = !scan.running;
+  fillLog($('log'), scan.log, '还没有开始扫描。');
+
+  $('dot-scan').hidden = !scan.running;
+  $('dot-download').hidden = !dl.running;
+  $('dot-ingest').hidden = !ing.running;
+  $('dot-meta').hidden = !mt.running;
+
+  $('btn-dl-start').disabled = !!dl.running;
+  $('btn-dl-stop').disabled = !dl.running;
+  $('dl-total').textContent = fmt(dl.total || 0);
+  $('dl-done').textContent = fmt(dl.done || 0);
+  $('dl-ok').textContent = fmt(dl.ok || 0);
+  $('dl-fail').textContent = fmt(dl.fail || 0);
+  $('dl-prog').style.width = (dl.total ? Math.round((dl.done || 0) * 100 / dl.total) : 0) + '%';
+  $('dl-cur').textContent = dl.current ? '正在下载：' + dl.current : '';
+  fillLog($('dl-log'), dl.log, '还没有开始下载。');
+
+  $('btn-in-once').disabled = !!ing.running;
+  $('btn-in-watch').disabled = !!ing.running;
+  $('btn-in-stop').disabled = !ing.running;
+  $('in-moved').textContent = fmt(ing.moved || 0);
+  $('in-dup').textContent = fmt(ing.dup || 0);
+  $('in-unknown').textContent = fmt(ing.unknown || 0);
+  $('in-broken').textContent = fmt(ing.broken || 0);
+  fillLog($('in-log'), ing.log, '还没有扫描过。');
+
+  $('btn-mt-start').disabled = !!mt.running;
+  $('btn-mt-stop').disabled = !mt.running;
+  $('mt-total').textContent = fmt(mt.total || 0);
+  $('mt-done').textContent = fmt(mt.done || 0);
+  $('mt-ok').textContent = fmt(mt.ok || 0);
+  $('mt-fail').textContent = fmt(mt.fail || 0);
+  $('mt-prog').style.width = (mt.total ? Math.round((mt.done || 0) * 100 / mt.total) : 0) + '%';
+  $('mt-cur').textContent = mt.current ? '正在补：' + mt.current : '';
+  fillLog($('mt-log'), mt.log, '还没有开始补全。');
+}
+
+async function loadBooks() {
+  let j;
+  try { j = await api('/api/books?' + params()); } catch (e) { return; }
+  total = j.total || 0;
+  $('total-txt').textContent = '共 ' + fmt(total) + ' 本';
+  const pages = Math.max(1, Math.ceil(total / size));
+  $('pg-txt').textContent = page + ' / ' + pages;
+  $('prev').disabled = page <= 1;
+  $('next').disabled = page >= pages;
+  $('tb').innerHTML = (j.items || []).map(b => `
+    <tr>
+      <td class="t" title="${esc(b.title)}">${esc(b.title) || '(无)'}</td>
+      <td>${esc(b.author) || '-'}</td>
+      <td>${esc(b.category_name) || '-'}</td>
+      <td>${b.word_count_real ? (b.word_count_real / 10000).toFixed(1) + ' 万' : '-'}</td>
+      <td>${fmt(b.read_count_real)}</td>
+      <td>${dstr(b.last_chapter_ts)}</td>
+      <td>${b.downloaded ? '<span class="ok">已下载</span>' : '<span class="no">—</span>'}</td>
+    </tr>`).join('');
+}
+
+async function loadCats() {
+  let j;
+  try { j = await api('/api/cats'); } catch (e) { return; }
+  $('f-cat').innerHTML = '<option value="">全部分类</option>' +
+    j.map(c => `<option value="${esc(c.name)}">${esc(c.name)}（${fmt(c.n)}）</option>`).join('');
+  $('cat').innerHTML = j.map(
+    c => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+  window.__cats = j;
+}
+
+$('mode').onchange = () => {
+  const m = $('mode').value;
+  $('cat').style.display = m === 'single' ? '' : 'none';
+  $('days-wrap').style.display = m === 'incr' ? '' : 'none';
+};
+
+$('btn-start').onclick = async () => {
+  const mode = $('mode').value;
+  const body = { mode };
+  if (mode === 'incr') body.days = Number($('days').value || 3);
+  if (mode === 'single') {
+    const hit = (window.__cats || []).find(c => c.name === $('cat').value);
+    if (!hit) return alert('请选择分类');
+    body.cid = hit.cid || hit.category_id;
+    body.gender = (hit.gender === 1 || hit.gender === 0) ? hit.gender : 0;
+  }
+  act('/api/scan/start', body);
+};
+$('btn-stop').onclick = () => act('/api/scan/stop');
+
+$('dl-mode').onchange = () => {
+  const m = $('dl-mode').value;
+  $('dl-unfinished').hidden = m !== 'unfinished';
+  $('dl-tsv').hidden = m !== 'tsv';
+  $('dl-search').hidden = m !== 'search';
+};
+
+$('btn-dl-start').onclick = async () => {
+  const mode = $('dl-mode').value;
+  const body = { mode };
+  if (mode === 'unfinished') {
+    body.min_read = Number($('dl-read').value || 0);
+    body.limit = Number($('dl-limit').value || 100);
+  } else if (mode === 'tsv') {
+    body.file = $('dl-file').value.trim();
+    if (!body.file) return alert('请填写清单文件路径');
+  } else {
+    body.keyword = $('dl-kw').value.trim();
+    if (!body.keyword) return alert('请填写书名');
+  }
+  act('/api/download/start', body);
+};
+$('btn-dl-stop').onclick = () => act('/api/download/stop');
+
+$('btn-in-once').onclick = () => act('/api/ingest/start', { watch: false });
+$('btn-in-watch').onclick = () => act('/api/ingest/start',
+  { watch: true, interval: Number($('in-interval').value || 60) });
+$('btn-in-stop').onclick = () => act('/api/ingest/stop');
+
+$('btn-mt-start').onclick = () => act('/api/meta/start', {
+  min_read: Number($('mt-read').value || 0),
+  limit: Number($('mt-limit').value || 0),
+});
+$('btn-mt-stop').onclick = () => act('/api/meta/stop');
+
+$('prev').onclick = () => { if (page > 1) { page--; loadBooks(); } };
+$('next').onclick = () => { page++; loadBooks(); };
+// 下载走 location.href，带不了自定义头，所以 token 用 query 参数传
+$('btn-export').onclick = () => {
+  const t = token();
+  location.href = '/api/export?' + params() + (t ? '&token=' + encodeURIComponent(t) : '');
+};
+
+['q', 'f-cat', 'min-read', 'min-word', 'order', 'dl'].forEach(id => {
+  $(id).addEventListener('change', () => { page = 1; loadBooks(); });
+});
+$('q').addEventListener('input', () => {
+  clearTimeout(window.__t);
+  window.__t = setTimeout(() => { page = 1; loadBooks(); }, 300);
+});
+
+loadCats(); loadStats(); loadJobs(); loadBooks();
+setInterval(() => { loadStats(); loadJobs(); }, 3000);
+</script>
+</body>
+</html>
